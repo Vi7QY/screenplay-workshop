@@ -1,0 +1,31 @@
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+/* 暗色主题（默认） */
+:root,[data-theme="dark"]{
+  --bg-primary:#0d0d18;--bg-secondary:#13132a;--bg-card:#1a1a35;--bg-hover:#222245;--bg-active:#2a2a50;
+  --bg-editor:#10101e;--text-primary:#e0e0f0;--text-secondary:#8888a8;--text-muted:#555570;
+  --accent:#7c5ce7;--accent2:#e94560;--accent-ok:#2ed573;--accent-warn:#ffa502;--accent-info:#45aaf2;
+  --color-action:#e94560;--color-dialogue:#2b7de0;--color-os:#d47fa8;--color-vo:#8854d0;
+  --color-direction:#2ed573;--color-scene:#ffa502;--color-card:#ff6b81;
+  --border-subtle:rgba(255,255,255,0.05);--selection-bg:rgba(124,92,231,0.35);
+  --radius:6px;--shadow:0 4px 20px rgba(0,0,0,0.4);--tr:0.2s ease;
+}
+
+/* 亮色主题 */
+[data-theme="light"]{
+  --bg-primary:#f5f5fa;--bg-secondary:#eeeef5;--bg-card:#ffffff;--bg-hover:#e8e8f0;--bg-active:#dddde8;
+  --bg-editor:#fafafe;--text-primary:#1a1a2e;--text-secondary:#555570;--text-muted:#8888a0;
+  --accent:#6c4fd8;--accent2:#d63854;--accent-ok:#1eab58;--accent-warn:#e08900;--accent-info:#2b7de0;
+  --color-action:#d63854;--color-dialogue:#2b6cb0;--color-os:#b0508a;--color-vo:#6c4fd8;
+  --color-direction:#1eab58;--color-scene:#d08500;--color-card:#d63854;
+  --border-subtle:rgba(0,0,0,0.08);--selection-bg:rgba(108,79,216,0.2);
+  --shadow:0 4px 20px rgba(0,0,0,0.08);
+}
+
+html,body{height:100%;font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg-primary);color:var(--text-primary);overflow:hidden;-webkit-font-smoothing:antialiased;transition:background 0.3s,color 0.3s}
+#app{height:100vh;display:flex;flex-direction:column}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--text-muted);border-radius:3px}
+::selection{background:var(--selection-bg);color:var(--text-primary)}
+input,textarea,select{font-family:inherit;color:var(--text-primary);background:var(--bg-card);border:1px solid var(--bg-hover);border-radius:var(--radius);outline:none;transition:border-color var(--tr)}
+input:focus,textarea:focus,select:focus{border-color:var(--accent)}
+button{font-family:inherit;cursor:pointer;border:none;outline:none;transition:all var(--tr)}

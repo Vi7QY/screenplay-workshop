@@ -1,0 +1,176 @@
+<template>
+  <div class="app">
+    <header class="topbar">
+      <div class="topbar-left">
+        <span class="logo">✎ 剧本工坊</span>
+        <div class="tabs">
+          <button :class="{active:tab==='meta'}" @click="tab='meta'">剧本信息</button>
+          <button :class="{active:tab==='editor'}" @click="tab='editor'">编辑器</button>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <span class="stats">{{ sp.episodes.length }}集 · {{ totalScenes }}场 · {{ totalChars }}字</span>
+        <button class="btn-theme" @click="toggleTheme" :title="isDark?'切换亮色':'切换暗色'">
+          {{ isDark ? '☀️' : '🌙' }}
+        </button>
+        <button class="btn-sm" @click="addEpisode">+ 添加集</button>
+        <button class="btn-sm" @click="doSave">保存</button>
+        <div class="dropdown-wrap">
+          <button class="btn-primary" @click="showExport=!showExport">导出 ▾</button>
+          <div class="dropdown" v-if="showExport">
+            <button @click="doExportTxt();showExport=false">纯文本 TXT</button>
+            <button @click="doExportDocx();showExport=false">Word DOCX</button>
+            <button @click="doExportPdf();showExport=false">PDF（打印）</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="main" v-if="tab==='meta'">
+      <MetaPanel :sp="sp" @update="onUpdate" />
+    </div>
+
+    <div class="main" v-else>
+      <aside class="sidebar">
+        <NavPanel :episodes="sp.episodes" :activeSceneId="activeSceneId" @select="jumpTo" @add-scene="addScene" @remove-ep="removeEpisode" />
+      </aside>
+      <div class="editor-pane">
+        <EditorPanel
+          :sp="sp"
+          :characters="sp.characters"
+          @update="onUpdate"
+          @set-active="activeSceneId=$event"
+        />
+      </div>
+    </div>
+
+    <footer class="statusbar">
+      <span>▲ = 动作描写 · 输入 <kbd>dz</kbd> 插入动作 · <kbd>db</kbd> 对白 · <kbd>jt</kbd> 镜头指示 · <kbd>os</kbd> 内心独白 · <kbd>rw</kbd> 人物行 · <kbd>Enter</kbd> 新行</span>
+      <span v-if="lastSaved" class="saved">已保存 {{ fmtTime(lastSaved) }}</span>
+    </footer>
+  </div>
+</template>
+
+<script>
+import { ref, reactive, computed, watch, onMounted } from 'vue'
+import { createScreenplay, createEpisode, createScene, loadFromStorage, saveToStorage, exportToText, isCardBreak, getCardForEpisode } from './model.js'
+import MetaPanel from './components/MetaPanel.vue'
+import NavPanel from './components/NavPanel.vue'
+import EditorPanel from './components/EditorPanel.vue'
+import { exportDocx } from './export-docx.js'
+
+export default {
+  components: { MetaPanel, NavPanel, EditorPanel },
+  setup() {
+    const sp = reactive(loadFromStorage() || createScreenplay())
+    const tab = ref('meta')
+    const activeSceneId = ref('')
+    const showExport = ref(false)
+    const lastSaved = ref(null)
+    const isDark = ref(true)
+
+    function toggleTheme() {
+      isDark.value = !isDark.value
+      document.documentElement.setAttribute('data-theme', isDark.value ? 'dark' : 'light')
+      try { localStorage.setItem('sp_theme', isDark.value ? 'dark' : 'light') } catch {}
+    }
+    // 初始化主题
+    const savedTheme = localStorage.getItem('sp_theme')
+    if (savedTheme === 'light') { isDark.value = false; document.documentElement.setAttribute('data-theme', 'light') }
+
+    const totalScenes = computed(() => sp.episodes.reduce((s,e) => s + e.scenes.length, 0))
+    const totalChars = computed(() => {
+      let n = 0
+      sp.episodes.forEach(e => e.scenes.forEach(sc => sc.blocks.forEach(b => { n += (b.content||'').length })))
+      return n
+    })
+
+    function onUpdate() { debouncedSave() }
+    let timer = null
+    function debouncedSave() { clearTimeout(timer); timer = setTimeout(doSave, 2000) }
+    function doSave() { saveToStorage(sp); lastSaved.value = new Date() }
+
+    function addEpisode() {
+      const num = sp.episodes.length + 1
+      sp.episodes.push(createEpisode(num, 2))
+      debouncedSave()
+    }
+    function removeEpisode(idx) {
+      if (sp.episodes.length <= 1) return
+      if (!confirm(`确定删除第${sp.episodes[idx].num}集？`)) return
+      sp.episodes.splice(idx, 1)
+      sp.episodes.forEach((e,i) => { e.num = i+1; e.title = `第${i+1}集` })
+      debouncedSave()
+    }
+    function addScene(epIdx) {
+      const ep = sp.episodes[epIdx]
+      const num = ep.scenes.length + 1
+      ep.scenes.push(createScene(ep.num, num))
+      debouncedSave()
+    }
+    function jumpTo(sceneId) { activeSceneId.value = sceneId; tab.value = 'editor' }
+
+    function doExportTxt() {
+      const txt = exportToText(sp)
+      downloadFile(sp.title + '.txt', txt, 'text/plain')
+    }
+    async function doExportDocx() {
+      await exportDocx(sp)
+    }
+    function doExportPdf() {
+      const txt = exportToText(sp)
+      const w = window.open('', '_blank')
+      w.document.write(`<html><head><meta charset="utf-8"><title>${sp.title}</title><style>body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;white-space:pre-wrap;padding:40px;font-size:14px;line-height:2;color:#222}@media print{body{padding:20px}}</style></head><body>${escHtml(txt)}</body></html>`)
+      w.document.close()
+      setTimeout(() => w.print(), 500)
+    }
+
+    function downloadFile(name, content, mime) {
+      const blob = new Blob([content], { type: mime + ';charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a'); a.href = url; a.download = name; a.click()
+      URL.revokeObjectURL(url)
+    }
+    function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>') }
+    function fmtTime(d) { return d ? d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '' }
+
+    watch(() => sp.episodes, debouncedSave, { deep: true })
+
+    onMounted(() => {
+      if (sp.episodes.length && sp.episodes[0].scenes.length) {
+        activeSceneId.value = sp.episodes[0].scenes[0].id
+      }
+    })
+
+    return { sp, tab, activeSceneId, showExport, lastSaved, isDark, totalScenes, totalChars, onUpdate, addEpisode, removeEpisode, addScene, jumpTo, doSave, toggleTheme, doExportTxt, doExportDocx, doExportPdf, fmtTime }
+  }
+}
+</script>
+
+<style scoped>
+.app{display:flex;flex-direction:column;height:100vh}
+.topbar{display:flex;align-items:center;justify-content:space-between;height:48px;padding:0 16px;background:var(--bg-secondary);border-bottom:1px solid var(--border-subtle);flex-shrink:0;z-index:50}
+.topbar-left,.topbar-right{display:flex;align-items:center;gap:12px}
+.logo{font-size:15px;font-weight:700;color:var(--accent2);letter-spacing:0.5px}
+.tabs{display:flex;gap:2px}
+.tabs button{padding:6px 16px;font-size:13px;background:transparent;color:var(--text-secondary);border-radius:var(--radius)}
+.tabs button.active{background:var(--accent);color:#fff}
+.tabs button:hover:not(.active){background:var(--bg-hover)}
+.stats{font-size:12px;color:var(--text-muted)}
+.btn-sm{padding:5px 12px;font-size:12px;background:var(--bg-card);color:var(--text-secondary);border-radius:var(--radius)}
+.btn-sm:hover{background:var(--bg-hover);color:var(--text-primary)}
+.btn-primary{padding:5px 14px;font-size:12px;background:var(--accent);color:#fff;border-radius:var(--radius)}
+.btn-primary:hover{background:#6a4bd6}
+.dropdown-wrap{position:relative}
+.dropdown{position:absolute;top:calc(100% + 4px);right:0;min-width:150px;background:var(--bg-card);border:1px solid var(--bg-hover);border-radius:var(--radius);box-shadow:var(--shadow);z-index:100;overflow:hidden}
+.dropdown button{display:block;width:100%;padding:10px 14px;font-size:13px;text-align:left;color:var(--text-primary);background:transparent}
+.dropdown button:hover{background:var(--bg-hover)}
+.main{flex:1;display:flex;overflow:hidden}
+.sidebar{width:230px;flex-shrink:0;background:var(--bg-secondary);border-right:1px solid var(--border-subtle);overflow-y:auto}
+.editor-pane{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.statusbar{display:flex;align-items:center;justify-content:space-between;height:28px;padding:0 16px;background:var(--bg-secondary);border-top:1px solid var(--border-subtle);font-size:11px;color:var(--text-muted);flex-shrink:0}
+.statusbar kbd{padding:0 4px;font-size:10px;font-family:monospace;background:var(--bg-card);border:1px solid var(--bg-hover);border-radius:2px}
+.saved{color:var(--accent-ok)}
+.btn-theme{width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:16px;background:var(--bg-card);border-radius:50%;color:var(--text-secondary);line-height:1}
+.btn-theme:hover{background:var(--bg-hover);transform:rotate(20deg)}
+</style>
