@@ -62,11 +62,70 @@ export function parseScreenplay(rawText) {
   let currentEp = null
   let currentSc = null
   let epNum = 0
+  let inOutline = false
+  let inCharSection = false
 
   for (let i = 0; i < lines.length; i++) {
     const raw = lines[i]
     const line = raw.trim()
-    if (!line) continue
+    if (!line) {
+      if (inOutline) inOutline = false
+      continue
+    }
+
+    // 匹配标题行：《xxx》或 剧本名称/标题：xxx
+    const titleMatch = line.match(/^[《「](.+?)[》」]$/) || line.match(/^(?:剧本名称|剧本标题|标题|名称)[：:]\s*(.+)/)
+    if (titleMatch && sp.episodes.length === 0 && !currentEp) {
+      sp.title = titleMatch[1] || titleMatch[2] || line
+      continue
+    }
+
+    // 匹配故事梗概/大纲
+    const outlineMatch = line.match(/^(?:故事梗概|故事大纲|剧情简介|简介|梗概)[：:]\s*(.*)/)
+    if (outlineMatch) {
+      sp.outline = outlineMatch[1] || ''
+      inOutline = true
+      inCharSection = false
+      continue
+    }
+    if (inOutline && !line.match(/^(?:第\s*\d|人物|角色|EP)/)) {
+      sp.outline += (sp.outline ? '\n' : '') + line
+      continue
+    }
+
+    // 匹配人物小传区域
+    const charSectionMatch = line.match(/^(?:人物小传|主要角色|角色介绍|人物介绍)[：:]?\s*$/)
+    if (charSectionMatch) {
+      inCharSection = true
+      inOutline = false
+      continue
+    }
+
+    // 在人物小传区域内解析角色
+    if (inCharSection) {
+      // 格式1：角色名（角色类型）：描述  或  角色名-角色类型：描述
+      const charMatch = line.match(/^([^\s（(：:—\-]{1,8})\s*[（(]?\s*(男主|女主|男配|女配|角色|龙套)?\s*[）)]?\s*[：:—\-]\s*(.*)/)
+      if (charMatch) {
+        sp.characters.push({
+          id: 'c' + Date.now().toString(36) + (++epNum * 100 + i).toString(36),
+          name: charMatch[1].trim(),
+          gender: '男',
+          age: '',
+          role: charMatch[2] || '角色',
+          desc: charMatch[3] || '',
+        })
+        continue
+      }
+      // 遇到集标题则退出人物小传区域
+      if (line.match(/^(?:第\s*\d|EP)/i)) {
+        inCharSection = false
+      } else {
+        continue
+      }
+    }
+
+    inOutline = false
+    inCharSection = false
 
     // 匹配集标题：第X集、第X话、EP.X 等
     const epMatch = line.match(/^(?:第\s*(\d+)\s*[集话]|EP\.?\s*(\d+)|第\s*([一二三四五六七八九十百千\d]+)\s*[集话])/i)

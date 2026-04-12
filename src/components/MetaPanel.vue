@@ -11,7 +11,7 @@
         <textarea v-model="sp.outline" rows="6" placeholder="请输入故事梗概，简要介绍故事背景和主线……" @input="$emit('update')"></textarea>
       </div>
       <div class="field-row">
-        <div class="field" style="flex:0 0 auto">
+        <div class="field field-auto">
           <label>作品类型</label>
           <div class="radio-group">
             <label class="radio-label" :class="{active: ipType==='original'}">
@@ -22,12 +22,12 @@
             </label>
           </div>
         </div>
-        <div class="field" v-if="ipType==='adaptation'" style="flex:1">
+        <div class="field field-grow" v-if="ipType==='adaptation'">
           <label>原IP作品名称</label>
           <input v-model="ipName" placeholder="如：盗墓笔记" @input="onIpNameChange" />
         </div>
       </div>
-      <div class="field" style="max-width:200px">
+      <div class="field field-ep">
         <label>总集数</label>
         <div class="ep-count-row">
           <input type="number" v-model.number="totalEpisodes" min="1" max="200" class="ep-count-input" @change="onEpCountChange" />
@@ -127,11 +127,14 @@ export default {
 .meta-section h2{font-size:16px;font-weight:600;margin-bottom:12px;color:var(--text-primary)}
 .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .section-header h2{margin-bottom:0}
-.field{margin-bottom:16px}
+.field{margin-bottom:16px;width:100%}
 .field label{display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px}
 .field input,.field textarea{width:100%;padding:10px 14px;font-size:14px;line-height:1.6;box-sizing:border-box}
 .field textarea{resize:vertical;min-height:120px}
-.field-row{display:flex;gap:20px;align-items:flex-start}
+.field-row{display:flex;gap:20px;align-items:flex-start;width:100%}
+.field-auto{flex:0 0 auto}
+.field-grow{flex:1}
+.field-ep{width:200px}
 .radio-group{display:flex;gap:8px;margin-top:4px}
 .radio-label{display:flex;align-items:center;gap:4px;padding:6px 14px;font-size:13px;background:var(--bg-card);border:1px solid var(--bg-hover);border-radius:var(--radius);cursor:pointer;color:var(--text-secondary);transition:all 0.15s}
 .radio-label.active{background:rgba(124,92,231,0.12);border-color:var(--accent);color:var(--accent)}
