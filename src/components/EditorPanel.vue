@@ -12,7 +12,7 @@
           <!-- 场次头 -->
           <div class="scene-head" :data-scene-id="sc.id" @click="$emit('set-active', sc.id)">
             <div class="scene-head-top">
-              <div class="scene-num">{{ ep.num }}-{{ si+1 }}</div>
+              <input class="scene-num-input" v-model="sc.label" @input="$emit('update')" />
               <button class="scene-del-btn" v-if="ep.scenes.length > 1" @click.stop="removeScene(ei,si)" title="删除此场次">✕</button>
             </div>
             <div class="scene-meta">
@@ -380,7 +380,9 @@ export default {
 .scene-del-btn{padding:2px 8px;font-size:12px;background:transparent;color:var(--text-muted);border-radius:3px;opacity:0;transition:opacity var(--tr)}
 .scene-head:hover .scene-del-btn{opacity:1}
 .scene-del-btn:hover{background:rgba(233,69,96,0.15);color:var(--accent2)}
-.scene-num{font-size:15px;font-weight:700;color:var(--color-scene);margin-bottom:8px}
+.scene-num-input{font-size:15px;font-weight:700;color:var(--color-scene);background:transparent;border:none;border-bottom:1px solid transparent;padding:0 0 2px;width:80px;margin-bottom:8px}
+.scene-num-input:hover{border-bottom-color:var(--bg-hover)}
+.scene-num-input:focus{border-bottom-color:var(--accent);outline:none}
 .scene-meta{display:flex;align-items:center;gap:4px;margin-bottom:6px;font-size:13px}
 .meta-label{color:var(--text-muted);flex-shrink:0}
 .meta-input{padding:3px 8px;font-size:13px;background:var(--bg-editor);border:1px solid var(--bg-hover);border-radius:3px}
