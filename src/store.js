@@ -4,7 +4,10 @@ import { createScreenplay, createEpisode, renumberAll } from './model.js'
 const DB_NAME = 'screenplay_workshop'
 const DB_VERSION = 1
 
+let _db = null
+
 function openDB() {
+  if (_db) return Promise.resolve(_db)
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION)
     req.onupgradeneeded = (e) => {
@@ -16,7 +19,7 @@ function openDB() {
         db.createObjectStore('meta', { keyPath: 'key' })
       }
     }
-    req.onsuccess = () => resolve(req.result)
+    req.onsuccess = () => { _db = req.result; resolve(_db) }
     req.onerror = () => reject(req.error)
   })
 }
@@ -38,7 +41,6 @@ function reqToPromise(req) {
 export async function listProjects() {
   const db = await openDB()
   const all = await reqToPromise(tx(db, 'projects').getAll())
-  db.close()
   return all.map(p => ({
     id: p.id,
     name: p.name,
@@ -56,7 +58,6 @@ export async function listProjects() {
 export async function getProject(id) {
   const db = await openDB()
   const p = await reqToPromise(tx(db, 'projects').get(id))
-  db.close()
   return p || null
 }
 
@@ -67,14 +68,12 @@ export async function saveProject(project) {
   project.updatedAt = new Date().toISOString()
   if (!project.createdAt) project.createdAt = project.updatedAt
   await reqToPromise(store.put(project))
-  db.close()
 }
 
 // 删除项目
 export async function deleteProject(id) {
   const db = await openDB()
   await reqToPromise(tx(db, 'projects', 'readwrite').delete(id))
-  db.close()
 }
 
 // ========== 活跃项目 ==========
@@ -82,14 +81,12 @@ export async function deleteProject(id) {
 export async function getActiveProjectId() {
   const db = await openDB()
   const meta = await reqToPromise(tx(db, 'meta').get('activeProject'))
-  db.close()
   return meta?.value || null
 }
 
 export async function setActiveProjectId(id) {
   const db = await openDB()
   await reqToPromise(tx(db, 'meta', 'readwrite').put({ key: 'activeProject', value: id }))
-  db.close()
 }
 
 // ========== 新建项目 ==========
@@ -145,7 +142,6 @@ export function exportProjectJSON(project) {
 export async function exportAllProjectsJSON() {
   const db = await openDB()
   const all = await reqToPromise(tx(db, 'projects').getAll())
-  db.close()
   const data = JSON.stringify({ version: 1, projects: all }, null, 2)
   const blob = new Blob([data], { type: 'application/json;charset=utf-8' })
   const url = URL.createObjectURL(blob)
