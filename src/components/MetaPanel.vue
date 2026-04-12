@@ -129,8 +129,8 @@ export default {
 .section-header h2{margin-bottom:0}
 .field{margin-bottom:16px}
 .field label{display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px}
-.field input,.field textarea{width:100%;padding:8px 12px;font-size:14px;line-height:1.6}
-.field textarea{resize:vertical}
+.field input,.field textarea{width:100%;padding:10px 14px;font-size:14px;line-height:1.6;box-sizing:border-box}
+.field textarea{resize:vertical;min-height:120px}
 .field-row{display:flex;gap:20px;align-items:flex-start}
 .radio-group{display:flex;gap:8px;margin-top:4px}
 .radio-label{display:flex;align-items:center;gap:4px;padding:6px 14px;font-size:13px;background:var(--bg-card);border:1px solid var(--bg-hover);border-radius:var(--radius);cursor:pointer;color:var(--text-secondary);transition:all 0.15s}
@@ -141,8 +141,8 @@ export default {
 .ep-count-suffix{font-size:14px;color:var(--text-secondary)}
 .btn-add{padding:5px 14px;font-size:12px;background:var(--accent);color:#fff;border-radius:var(--radius)}
 .btn-add:hover{background:#6a4bd6}
-.char-list{display:flex;flex-direction:column;gap:10px}
-.char-card{background:var(--bg-card);border:1px solid var(--bg-hover);border-radius:var(--radius);padding:10px 12px}
+.char-list{display:flex;flex-direction:column;gap:10px;width:100%}
+.char-card{background:var(--bg-card);border:1px solid var(--bg-hover);border-radius:var(--radius);padding:10px 12px;width:100%;box-sizing:border-box}
 .char-row{display:flex;gap:6px;align-items:center;margin-bottom:6px}
 .char-row input,.char-row select{padding:4px 8px;font-size:13px}
 .input-name{flex:1;min-width:80px}
@@ -150,6 +150,6 @@ export default {
 .char-row select{width:64px}
 .btn-del{padding:2px 8px;background:transparent;color:var(--text-muted);font-size:14px;border-radius:var(--radius)}
 .btn-del:hover{background:rgba(233,69,96,0.15);color:var(--accent2)}
-.char-desc{width:100%;padding:6px 8px;font-size:13px;resize:vertical}
-.empty{font-size:13px;color:var(--text-muted);padding:12px}
+.char-desc{width:100%;padding:6px 8px;font-size:13px;resize:vertical;box-sizing:border-box}
+.empty{font-size:13px;color:var(--text-muted);padding:12px;width:100%}
 </style>
