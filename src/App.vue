@@ -295,26 +295,31 @@ export default {
     }
 
     async function createNewProject() {
-      // 先保存当前项目
-      if (activeProject.value) {
-        activeProject.value.data = JSON.parse(JSON.stringify(sp))
-        activeProject.value.name = sp.title
-        await saveProject(activeProject.value)
+      try {
+        // 先保存当前项目
+        if (activeProject.value) {
+          activeProject.value.data = JSON.parse(JSON.stringify(sp))
+          activeProject.value.name = sp.title
+          await saveProject(activeProject.value)
+        }
+        // 创建新项目
+        const p = createProject('未命名剧本')
+        await saveProject(p)
+        // 直接切换
+        activeProject.value = p
+        activeProjectId.value = p.id
+        await setActiveProjectId(p.id)
+        assignDeep(sp, p.data)
+        undoMgr.init(sp)
+        if (sp.episodes.length && sp.episodes[0].scenes.length) {
+          activeSceneId.value = sp.episodes[0].scenes[0].id
+        }
+        await refreshList()
+        tab.value = 'meta'
+      } catch (err) {
+        console.error('createNewProject error:', err)
+        alert('新建剧本失败：' + err.message)
       }
-      // 创建新项目
-      const p = createProject('未命名剧本')
-      await saveProject(p)
-      // 直接切换，不从DB重新读
-      activeProject.value = p
-      activeProjectId.value = p.id
-      await setActiveProjectId(p.id)
-      assignDeep(sp, p.data)
-      undoMgr.init(sp)
-      if (sp.episodes.length && sp.episodes[0].scenes.length) {
-        activeSceneId.value = sp.episodes[0].scenes[0].id
-      }
-      await refreshList()
-      tab.value = 'meta'
     }
 
     async function deleteProjectById(id) {

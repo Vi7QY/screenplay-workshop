@@ -63,11 +63,16 @@ export async function getProject(id) {
 
 // 保存项目（新建或更新）
 export async function saveProject(project) {
-  const db = await openDB()
-  const store = tx(db, 'projects', 'readwrite')
-  project.updatedAt = new Date().toISOString()
-  if (!project.createdAt) project.createdAt = project.updatedAt
-  await reqToPromise(store.put(project))
+  try {
+    const db = await openDB()
+    const store = tx(db, 'projects', 'readwrite')
+    project.updatedAt = new Date().toISOString()
+    if (!project.createdAt) project.createdAt = project.updatedAt
+    await reqToPromise(store.put(JSON.parse(JSON.stringify(project))))
+  } catch (err) {
+    console.error('saveProject failed:', err)
+    throw err
+  }
 }
 
 // 删除项目
