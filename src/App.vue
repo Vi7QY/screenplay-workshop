@@ -13,6 +13,12 @@
         <template v-if="tab==='editor' && activeProject">
           <span class="current-title">{{ sp.title }}</span>
           <span class="stats">{{ sp.episodes.length }}集 · {{ totalScenes }}场 · {{ totalChars }}字</span>
+          <button class="btn-icon" @click="doUndo" :disabled="!undoMgr.state.canUndo" title="撤销 Ctrl+Z">↩</button>
+          <button class="btn-icon" @click="doRedo" :disabled="!undoMgr.state.canRedo" title="重做 Ctrl+Y">↪</button>
+          <button class="btn-icon" @click="showSearch=!showSearch" title="搜索替换 Ctrl+F">🔍</button>
+          <button class="btn-icon" @click="showOutline=!showOutline" title="大纲模式">📋</button>
+          <button class="btn-icon" @click="toggleZen" :title="zenMode?'退出沉浸':'沉浸写作'">{{ zenMode ? '⊡' : '⊞' }}</button>
+          <button class="btn-icon" @click="showVersions=!showVersions" title="版本历史">🕐</button>
         </template>
         <template v-if="tab==='meta' && activeProject">
           <span class="current-title">{{ sp.title }}</span>
@@ -64,17 +70,46 @@
     </div>
 
     <!-- 剧本正文 -->
-    <div class="main" v-else-if="tab==='editor' && activeProject">
-      <aside class="sidebar">
-        <NavPanel :episodes="sp.episodes" :activeSceneId="activeSceneId" @select="jumpTo" @add-scene="addScene" @remove-ep="removeEpisode" />
+    <div class="main" v-else-if="tab==='editor' && activeProject" :class="{zen: zenMode}">
+      <aside class="sidebar" v-if="!zenMode">
+        <!-- 大纲模式 -->
+        <div v-if="showOutline" class="outline-panel">
+          <div class="outline-title">📋 大纲 · 分集统计</div>
+          <div v-for="(ep, ei) in sp.episodes" :key="ep.id" class="outline-ep">
+            <div class="outline-ep-row" @click="outlineCollapsed[ei]=!outlineCollapsed[ei]">
+              <span class="outline-arrow">{{ outlineCollapsed[ei] ? '▸' : '▾' }}</span>
+              <span class="outline-ep-name">{{ ep.title }}</span>
+              <span class="outline-ep-stats">{{ epCharCount(ei) }}字 · {{ ep.scenes.length }}场</span>
+            </div>
+            <div v-if="!outlineCollapsed[ei]" class="outline-scenes">
+              <div v-for="sc in ep.scenes" :key="sc.id" class="outline-sc" @click="jumpTo(sc.id)">
+                {{ sc.label }} {{ sc.location || '' }}
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- 场景导航 -->
+        <NavPanel v-else :episodes="sp.episodes" :activeSceneId="activeSceneId" @select="jumpTo" @add-scene="addScene" @remove-ep="removeEpisode" />
       </aside>
       <div class="editor-pane">
+        <SearchBar :visible="showSearch" :sp="sp" @close="showSearch=false" @navigate="jumpTo" @update="onUpdate" />
         <EditorPanel
           :sp="sp"
           :characters="sp.characters"
           @update="onUpdate"
           @set-active="activeSceneId=$event"
         />
+      </div>
+
+      <!-- 版本历史面板 -->
+      <div class="version-panel" v-if="showVersions">
+        <div class="version-title">🕐 版本历史</div>
+        <div v-if="versionList.length===0" class="version-empty">暂无历史版本</div>
+        <div v-for="(v, vi) in versionList" :key="vi" class="version-item" @click="restoreVersion(vi)">
+          <span class="version-time">{{ v.time }}</span>
+          <span class="version-info">{{ v.epCount }}集 · {{ v.charCount }}字</span>
+        </div>
+        <button class="version-save-btn" @click="saveVersion">💾 保存当前版本</button>
       </div>
     </div>
 
@@ -99,7 +134,7 @@
 </template>
 
 <script>
-import { ref, reactive, computed, watch, onMounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
 import { createScreenplay, createEpisode, createScene, exportToText, renumberAll } from './model.js'
 import { listProjects, getProject, saveProject, deleteProject, getActiveProjectId, setActiveProjectId, createProject, syncEpisodeCount, exportProjectJSON, exportAllProjectsJSON, importProjectJSON, migrateFromLocalStorage } from './store.js'
 import { readFile, parseScreenplay } from './import-screenplay.js'
@@ -108,9 +143,11 @@ import MetaPanel from './components/MetaPanel.vue'
 import NavPanel from './components/NavPanel.vue'
 import EditorPanel from './components/EditorPanel.vue'
 import ProjectsPanel from './components/ProjectsPanel.vue'
+import SearchBar from './components/SearchBar.vue'
+import { createUndoManager } from './undo.js'
 
 export default {
-  components: { MetaPanel, NavPanel, EditorPanel, ProjectsPanel },
+  components: { MetaPanel, NavPanel, EditorPanel, ProjectsPanel, SearchBar },
   setup() {
     const tab = ref('projects')
     const sp = reactive(createScreenplay())
@@ -123,6 +160,75 @@ export default {
     const projectList = ref([])
     const activeProjectId = ref('')
     const activeProject = ref(null)
+
+    // 新功能状态
+    const showSearch = ref(false)
+    const zenMode = ref(false)
+    const showOutline = ref(false)
+    const showVersions = ref(false)
+    const outlineCollapsed = reactive({})
+    const versionList = ref([])
+    const undoMgr = createUndoManager()
+
+    // 分集字数统计
+    function epCharCount(ei) {
+      let n = 0
+      sp.episodes[ei]?.scenes.forEach(sc => sc.blocks.forEach(b => { n += (b.content || '').length }))
+      return n
+    }
+
+    // 全屏沉浸模式
+    function toggleZen() { zenMode.value = !zenMode.value }
+
+    // 撤销/重做
+    function doUndo() {
+      const prev = undoMgr.undo(sp)
+      if (prev) Object.assign(sp, prev)
+    }
+    function doRedo() {
+      const next = undoMgr.redo(sp)
+      if (next) Object.assign(sp, next)
+    }
+
+    // 版本历史
+    function saveVersion() {
+      const snap = {
+        time: new Date().toLocaleString('zh-CN'),
+        epCount: sp.episodes.length,
+        charCount: totalChars.value,
+        data: JSON.parse(JSON.stringify(sp)),
+      }
+      versionList.value.unshift(snap)
+      if (versionList.value.length > 10) versionList.value.pop()
+      alert('版本已保存')
+    }
+    function restoreVersion(vi) {
+      if (!confirm('确定恢复到此版本？当前未保存的修改将丢失。')) return
+      const v = versionList.value[vi]
+      Object.assign(sp, JSON.parse(JSON.stringify(v.data)))
+      debouncedSave()
+    }
+
+    // 键盘快捷键
+    function onKeydown(e) {
+      // Ctrl+Z 撤销
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        if (tab.value === 'editor') { e.preventDefault(); doUndo() }
+      }
+      // Ctrl+Y 或 Ctrl+Shift+Z 重做
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        if (tab.value === 'editor') { e.preventDefault(); doRedo() }
+      }
+      // Ctrl+F 搜索
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        if (tab.value === 'editor') { e.preventDefault(); showSearch.value = true }
+      }
+      // Escape 退出zen模式
+      if (e.key === 'Escape') {
+        if (zenMode.value) zenMode.value = false
+        if (showSearch.value) showSearch.value = false
+      }
+    }
 
     // 主题
     function toggleTheme() {
@@ -158,6 +264,7 @@ export default {
       await setActiveProjectId(id)
       // 同步到reactive sp
       Object.assign(sp, p.data)
+      undoMgr.init(sp)
       if (sp.episodes.length && sp.episodes[0].scenes.length) {
         activeSceneId.value = sp.episodes[0].scenes[0].id
       }
@@ -197,7 +304,7 @@ export default {
       await refreshList()
     }
 
-    function onUpdate() { debouncedSave() }
+    function onUpdate() { undoMgr.record(sp); debouncedSave() }
 
     function onUpdateProject(fields) {
       if (!activeProject.value) return
@@ -318,6 +425,9 @@ export default {
     // ========== Init ==========
 
     onMounted(async () => {
+      // 键盘快捷键
+      window.addEventListener('keydown', onKeydown)
+
       // 先尝试迁移旧数据
       await migrateFromLocalStorage()
       await refreshList()
@@ -342,11 +452,17 @@ export default {
       }
     })
 
+    onUnmounted(() => {
+      window.removeEventListener('keydown', onKeydown)
+    })
+
     return {
       tab, sp, activeSceneId, showExport, lastSaved, isDark, importing,
       projectList, activeProjectId, activeProject,
-      totalScenes, totalChars,
-      toggleTheme, onUpdate, onUpdateProject, onEpCountChange,
+      showSearch, zenMode, showOutline, showVersions, outlineCollapsed, versionList, undoMgr,
+      totalScenes, totalChars, epCharCount,
+      toggleTheme, toggleZen, doUndo, doRedo, saveVersion, restoreVersion,
+      onUpdate, onUpdateProject, onEpCountChange,
       selectProject, createNewProject, deleteProjectById,
       removeEpisode, addScene, jumpTo,
       doSave, triggerImport, triggerImportArchive,
@@ -386,6 +502,38 @@ export default {
 .saved{color:var(--accent-ok)}
 .btn-theme{width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:16px;background:var(--bg-card);border-radius:50%;color:var(--text-secondary);line-height:1}
 .btn-theme:hover{background:var(--bg-hover);transform:rotate(20deg)}
+.btn-icon{width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:14px;background:var(--bg-card);border-radius:var(--radius);color:var(--text-secondary);line-height:1}
+.btn-icon:hover{background:var(--bg-hover);color:var(--text-primary)}
+.btn-icon:disabled{opacity:0.3;cursor:not-allowed}
+
+/* Zen Mode */
+.main.zen .sidebar{display:none}
+.main.zen .editor-pane{flex:1}
+.main.zen{background:var(--bg-editor)}
+
+/* Outline Panel */
+.outline-panel{padding:12px 0;overflow-y:auto;height:100%}
+.outline-title{padding:0 14px 10px;font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px}
+.outline-ep{margin-bottom:2px}
+.outline-ep-row{display:flex;align-items:center;gap:6px;padding:6px 14px;cursor:pointer;font-size:13px;transition:background 0.1s}
+.outline-ep-row:hover{background:var(--bg-hover)}
+.outline-arrow{font-size:10px;color:var(--text-muted);width:12px}
+.outline-ep-name{font-weight:600;color:var(--text-primary);flex:1}
+.outline-ep-stats{font-size:11px;color:var(--text-muted)}
+.outline-scenes{padding-left:32px}
+.outline-sc{padding:3px 14px;font-size:12px;color:var(--text-secondary);cursor:pointer;border-radius:3px}
+.outline-sc:hover{background:var(--bg-hover);color:var(--accent)}
+
+/* Version Panel */
+.version-panel{width:220px;flex-shrink:0;background:var(--bg-secondary);border-left:1px solid var(--border-subtle);overflow-y:auto;padding:12px 0}
+.version-title{padding:0 14px 10px;font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px}
+.version-empty{padding:12px 14px;font-size:12px;color:var(--text-muted)}
+.version-item{padding:8px 14px;cursor:pointer;transition:background 0.1s}
+.version-item:hover{background:var(--bg-hover)}
+.version-time{display:block;font-size:12px;color:var(--text-primary)}
+.version-info{font-size:11px;color:var(--text-muted)}
+.version-save-btn{width:calc(100% - 28px);margin:10px 14px;padding:8px;font-size:12px;background:var(--bg-card);color:var(--text-secondary);border:1px dashed var(--bg-hover);border-radius:var(--radius)}
+.version-save-btn:hover{background:var(--bg-hover);border-color:var(--accent);color:var(--text-primary)}
 #mobile-tip{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:#0d0d18;color:#e0e0f0;font-family:'PingFang SC','Microsoft YaHei',sans-serif;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 24px}
 #mobile-tip .icon{font-size:48px;margin-bottom:20px}
 #mobile-tip h2{font-size:20px;font-weight:700;margin-bottom:12px;color:#7c5ce7}
