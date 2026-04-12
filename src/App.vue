@@ -12,7 +12,6 @@
       <div class="topbar-right">
         <template v-if="tab==='editor' && activeProject">
           <span class="current-title">{{ sp.title }}</span>
-          <span class="stats">{{ sp.episodes.length }}集 · {{ totalScenes }}场 · {{ totalChars }}字</span>
           <button class="btn-tool" @click="doUndo" :disabled="!undoMgr.state.canUndo" title="Ctrl+Z">↩ 撤销</button>
           <button class="btn-tool" @click="doRedo" :disabled="!undoMgr.state.canRedo" title="Ctrl+Y">↪ 重做</button>
           <button class="btn-tool" @click="showSearch=!showSearch" title="Ctrl+F">🔍 搜索</button>
@@ -129,7 +128,10 @@
 
     <footer class="statusbar">
       <span>▲ = 动作描写 · 输入 <kbd>dz</kbd> 插入动作 · <kbd>db</kbd> 对白 · <kbd>jt</kbd> 镜头指示 · <kbd>os</kbd> 内心独白 · <kbd>rw</kbd> 人物行 · <kbd>Enter</kbd> 新行</span>
-      <span v-if="lastSaved" class="saved">已保存 {{ fmtTime(lastSaved) }}</span>
+      <span class="statusbar-right">
+        <span v-if="tab==='editor' && activeProject" class="stats">{{ sp.episodes.length }}集 · {{ totalScenes }}场 · {{ totalChars }}字</span>
+        <span v-if="lastSaved" class="saved">已保存 {{ fmtTime(lastSaved) }}</span>
+      </span>
     </footer>
   </div>
 </template>
@@ -520,6 +522,8 @@ export default {
 .editor-pane{flex:1;overflow:hidden;display:flex;flex-direction:column}
 .statusbar{display:flex;align-items:center;justify-content:space-between;height:28px;padding:0 16px;background:var(--bg-secondary);border-top:1px solid var(--border-subtle);font-size:11px;color:var(--text-muted);flex-shrink:0}
 .statusbar kbd{padding:0 4px;font-size:10px;font-family:monospace;background:var(--bg-card);border:1px solid var(--bg-hover);border-radius:2px}
+.statusbar-right{display:flex;align-items:center;gap:12px}
+.stats{font-size:11px;color:var(--text-muted)}
 .saved{color:var(--accent-ok)}
 .btn-theme{width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:16px;background:var(--bg-card);border-radius:50%;color:var(--text-secondary);line-height:1}
 .btn-theme:hover{background:var(--bg-hover);transform:rotate(20deg)}
