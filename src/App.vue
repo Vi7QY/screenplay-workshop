@@ -19,6 +19,7 @@
           <button class="btn-tool" @click="showOutline=!showOutline" :class="{active:showOutline}">📋 大纲</button>
           <button class="btn-tool" @click="toggleZen" :class="{active:zenMode}">{{ zenMode ? '⊡ 退出沉浸' : '⊞ 沉浸写作' }}</button>
           <button class="btn-tool" @click="showVersions=!showVersions" :class="{active:showVersions}">🕐 版本</button>
+          <button class="btn-sm" @click="addEpisode">+ 添加集</button>
         </template>
         <template v-if="tab==='meta' && activeProject">
           <span class="current-title">{{ sp.title }}</span>
@@ -331,6 +332,14 @@ export default {
       debouncedSave()
     }
 
+    function addEpisode() {
+      const num = sp.episodes.length + 1
+      sp.episodes.push(createEpisode(num, 2))
+      renumberAll(sp)
+      if (activeProject.value) activeProject.value.totalEpisodes = sp.episodes.length
+      debouncedSave()
+    }
+
     function addScene(epIdx) {
       const ep = sp.episodes[epIdx]
       const num = ep.scenes.length + 1
@@ -464,7 +473,7 @@ export default {
       toggleTheme, toggleZen, doUndo, doRedo, saveVersion, restoreVersion,
       onUpdate, onUpdateProject, onEpCountChange,
       selectProject, createNewProject, deleteProjectById,
-      removeEpisode, addScene, jumpTo,
+      removeEpisode, addEpisode, addScene, jumpTo,
       doSave, triggerImport, triggerImportArchive,
       doExportAll, doExportSingle, doExportTxt, doExportDocx, doExportPdf,
       fmtTime,
