@@ -87,6 +87,8 @@ export function renumberAll(sp) {
       sc.episodeNum = ei + 1
       sc.sceneNum = si + 1
       sc.label = `${ei + 1}-${si + 1}`
+      // 确保每个场次的characters是独立数组
+      if (!Array.isArray(sc.characters)) sc.characters = []
     })
   })
 }

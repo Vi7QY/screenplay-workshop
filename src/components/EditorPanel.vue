@@ -170,7 +170,9 @@ export default {
     }
     function pickChar(ei, si, name) {
       const sc = props.sp.episodes[ei].scenes[si]
-      if (!sc.characters.includes(name)) sc.characters.push(name)
+      if (!sc.characters.includes(name)) {
+        sc.characters = [...sc.characters, name]
+      }
       charInput.value = ''
       charMenuOpen.value = false
       emit('update')
@@ -206,12 +208,15 @@ export default {
       const v = charInput.value.trim()
       if (!v) return
       const sc = props.sp.episodes[ei].scenes[si]
-      if (!sc.characters.includes(v)) sc.characters.push(v)
+      if (!sc.characters.includes(v)) {
+        sc.characters = [...sc.characters, v]
+      }
       charInput.value = ''
       emit('update')
     }
     function removeSceneChar(ei, si, ci) {
-      props.sp.episodes[ei].scenes[si].characters.splice(ci, 1)
+      const sc = props.sp.episodes[ei].scenes[si]
+      sc.characters = sc.characters.filter((_, idx) => idx !== ci)
       emit('update')
     }
 
