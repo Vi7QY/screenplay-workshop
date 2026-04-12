@@ -264,19 +264,27 @@ export default {
     }
 
     async function selectProject(id) {
-      // 先保存当前项目
-      if (activeProject.value) await doSave()
-      // 加载新项目
-      const p = await getProject(id)
-      if (!p) return
-      activeProject.value = p
-      activeProjectId.value = id
-      await setActiveProjectId(id)
-      // 同步到reactive sp
-      assignDeep(sp, p.data)
-      undoMgr.init(sp)
-      if (sp.episodes.length && sp.episodes[0].scenes.length) {
-        activeSceneId.value = sp.episodes[0].scenes[0].id
+      try {
+        // 先保存当前项目（不刷新列表，避免竞态）
+        if (activeProject.value) {
+          activeProject.value.data = JSON.parse(JSON.stringify(sp))
+          activeProject.value.name = sp.title
+          await saveProject(activeProject.value)
+        }
+        // 加载新项目
+        const p = await getProject(id)
+        if (!p) { console.error('Project not found:', id); return }
+        activeProject.value = p
+        activeProjectId.value = id
+        await setActiveProjectId(id)
+        assignDeep(sp, p.data)
+        undoMgr.init(sp)
+        if (sp.episodes.length && sp.episodes[0].scenes.length) {
+          activeSceneId.value = sp.episodes[0].scenes[0].id
+        }
+        await refreshList()
+      } catch (err) {
+        console.error('selectProject error:', err)
       }
     }
 
