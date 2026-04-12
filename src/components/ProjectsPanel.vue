@@ -29,6 +29,12 @@
         <button class="action-btn" @click="$emit('import-file')">📄 导入剧本文件</button>
         <button class="action-btn" @click="$emit('export-all')">📦 导出全部</button>
       </div>
+
+      <div class="sidebar-footer" v-if="!sidebarCollapsed">
+        <div class="footer-line">剧本工坊 v3.1</div>
+        <div class="footer-line">开发者 <a href="https://github.com/Vi7QY" target="_blank">Vi7QY</a></div>
+        <div class="footer-line">反馈建议 → <a href="https://github.com/Vi7QY/screenplay-workshop/issues" target="_blank">GitHub Issues</a></div>
+      </div>
     </aside>
 
     <div class="project-preview" v-if="currentProject">
@@ -118,6 +124,11 @@ export default {
 .sidebar-actions{padding:8px 10px;border-top:1px solid var(--border-subtle);display:flex;flex-direction:column;gap:4px}
 .action-btn{padding:7px 12px;font-size:12px;background:transparent;color:var(--text-secondary);border:1px dashed var(--bg-hover);border-radius:var(--radius);text-align:left}
 .action-btn:hover{background:var(--bg-hover);color:var(--text-primary);border-color:var(--accent)}
+
+.sidebar-footer{padding:10px 14px;border-top:1px solid var(--border-subtle)}
+.footer-line{font-size:10px;color:var(--text-muted);line-height:1.8}
+.footer-line a{color:var(--accent);text-decoration:none}
+.footer-line a:hover{text-decoration:underline}
 
 .project-preview{flex:1;padding:40px;overflow-y:auto}
 .preview-header{margin-bottom:24px}
