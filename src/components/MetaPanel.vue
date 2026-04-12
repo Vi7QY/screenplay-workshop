@@ -138,9 +138,9 @@ export default {
 .field label{display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px}
 .field input,.field textarea{width:100%;padding:10px 14px;font-size:14px;line-height:1.6;box-sizing:border-box}
 .field textarea{resize:vertical;min-height:120px}
-.field-row{display:flex;gap:20px;align-items:flex-start;width:100%}
+.field-row{display:flex;gap:20px;align-items:flex-start;width:auto;max-width:600px}
 .field-auto{flex:0 0 auto}
-.field-grow{flex:1}
+.field-grow{flex:1;min-width:200px}
 .field-ep{width:200px}
 .radio-group{display:flex;gap:8px;margin-top:4px}
 .radio-label{display:flex;align-items:center;gap:4px;padding:6px 14px;font-size:13px;background:var(--bg-card);border:1px solid var(--bg-hover);border-radius:var(--radius);cursor:pointer;color:var(--text-secondary);transition:all 0.15s}
