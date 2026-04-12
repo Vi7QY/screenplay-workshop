@@ -4,11 +4,35 @@
       <h2>剧本信息</h2>
       <div class="field">
         <label>剧本标题</label>
-        <input v-model="sp.title" placeholder="请输入剧本标题" @input="$emit('update')" />
+        <input v-model="sp.title" placeholder="请输入剧本标题" @input="onTitleChange" />
       </div>
       <div class="field">
         <label>故事大纲</label>
         <textarea v-model="sp.outline" rows="5" placeholder="请输入故事大纲，简要介绍故事背景和主线……" @input="$emit('update')"></textarea>
+      </div>
+      <div class="field-row">
+        <div class="field" style="flex:0 0 auto">
+          <label>作品类型</label>
+          <div class="radio-group">
+            <label class="radio-label" :class="{active: ipType==='original'}">
+              <input type="radio" v-model="ipType" value="original" @change="onIpTypeChange" /> 原创
+            </label>
+            <label class="radio-label" :class="{active: ipType==='adaptation'}">
+              <input type="radio" v-model="ipType" value="adaptation" @change="onIpTypeChange" /> IP改编
+            </label>
+          </div>
+        </div>
+        <div class="field" v-if="ipType==='adaptation'" style="flex:1">
+          <label>原IP作品名称</label>
+          <input v-model="ipName" placeholder="如：盗墓笔记" @input="onIpNameChange" />
+        </div>
+      </div>
+      <div class="field" style="max-width:200px">
+        <label>总集数</label>
+        <div class="ep-count-row">
+          <input type="number" v-model.number="totalEpisodes" min="1" max="200" class="ep-count-input" @change="onEpCountChange" />
+          <span class="ep-count-suffix">集</span>
+        </div>
       </div>
     </div>
 
@@ -41,29 +65,49 @@
         <div v-if="sp.characters.length===0" class="empty">暂无角色，点击上方按钮添加</div>
       </div>
     </div>
-
-    <div class="meta-section">
-      <div class="section-header">
-        <h2>集数管理</h2>
-        <span class="hint">共 {{ sp.episodes.length }} 集 · 分卡：一卡(前3集) / 二卡(前10集) / 三卡(前30集)</span>
-      </div>
-      <div class="ep-grid">
-        <div v-for="(ep, i) in sp.episodes" :key="ep.id" class="ep-chip" :class="{ 'card-break': isCard(ep.num) }">
-          <span class="ep-num">{{ ep.title }}</span>
-          <span class="ep-scenes">{{ ep.scenes.length }}场</span>
-          <span v-if="getCardLabel(ep.num)" class="card-tag">{{ getCardLabel(ep.num) }}</span>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
 <script>
-import { createCharacter, isCardBreak, getCardForEpisode } from '../model.js'
+import { ref, watch } from 'vue'
+import { createCharacter } from '../model.js'
 export default {
-  props: { sp: Object },
-  emits: ['update'],
+  props: { sp: Object, project: Object },
+  emits: ['update', 'update-project', 'ep-count-change'],
   setup(props, { emit }) {
+    const ipType = ref(props.project?.ipType || 'original')
+    const ipName = ref(props.project?.ipName || '')
+    const totalEpisodes = ref(props.project?.totalEpisodes || props.sp.episodes.length || 1)
+
+    // 同步project变化
+    watch(() => props.project, (p) => {
+      if (p) {
+        ipType.value = p.ipType || 'original'
+        ipName.value = p.ipName || ''
+        totalEpisodes.value = p.totalEpisodes || props.sp.episodes.length || 1
+      }
+    }, { deep: true })
+
+    function onTitleChange() {
+      emit('update')
+      emit('update-project', { name: props.sp.title })
+    }
+    function onIpTypeChange() {
+      emit('update-project', { ipType: ipType.value })
+      if (ipType.value === 'original') {
+        ipName.value = ''
+        emit('update-project', { ipName: '' })
+      }
+    }
+    function onIpNameChange() {
+      emit('update-project', { ipName: ipName.value })
+    }
+    function onEpCountChange() {
+      const n = Math.max(1, Math.min(200, totalEpisodes.value || 1))
+      totalEpisodes.value = n
+      emit('ep-count-change', n)
+      emit('update-project', { totalEpisodes: n })
+    }
     function addCharacter() {
       props.sp.characters.push(createCharacter())
       emit('update')
@@ -72,12 +116,7 @@ export default {
       props.sp.characters.splice(i, 1)
       emit('update')
     }
-    function isCard(n) { return isCardBreak(n) }
-    function getCardLabel(n) {
-      const c = getCardForEpisode(n)
-      return c && c.upTo === n ? c.name : ''
-    }
-    return { addCharacter, removeCharacter, isCard, getCardLabel }
+    return { ipType, ipName, totalEpisodes, onTitleChange, onIpTypeChange, onIpNameChange, onEpCountChange, addCharacter, removeCharacter }
   }
 }
 </script>
@@ -88,11 +127,18 @@ export default {
 .meta-section h2{font-size:16px;font-weight:600;margin-bottom:12px;color:var(--text-primary)}
 .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .section-header h2{margin-bottom:0}
-.hint{font-size:11px;color:var(--text-muted)}
 .field{margin-bottom:16px}
 .field label{display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px}
 .field input,.field textarea{width:100%;padding:8px 12px;font-size:14px;line-height:1.6}
 .field textarea{resize:vertical}
+.field-row{display:flex;gap:20px;align-items:flex-start}
+.radio-group{display:flex;gap:8px;margin-top:4px}
+.radio-label{display:flex;align-items:center;gap:4px;padding:6px 14px;font-size:13px;background:var(--bg-card);border:1px solid var(--bg-hover);border-radius:var(--radius);cursor:pointer;color:var(--text-secondary);transition:all 0.15s}
+.radio-label.active{background:rgba(124,92,231,0.12);border-color:var(--accent);color:var(--accent)}
+.radio-label input[type="radio"]{display:none}
+.ep-count-row{display:flex;align-items:center;gap:6px}
+.ep-count-input{width:80px;padding:8px 12px;font-size:16px;font-weight:600;text-align:center}
+.ep-count-suffix{font-size:14px;color:var(--text-secondary)}
 .btn-add{padding:5px 14px;font-size:12px;background:var(--accent);color:#fff;border-radius:var(--radius)}
 .btn-add:hover{background:#6a4bd6}
 .char-list{display:flex;flex-direction:column;gap:10px}
@@ -106,10 +152,4 @@ export default {
 .btn-del:hover{background:rgba(233,69,96,0.15);color:var(--accent2)}
 .char-desc{width:100%;padding:6px 8px;font-size:13px;resize:vertical}
 .empty{font-size:13px;color:var(--text-muted);padding:12px}
-.ep-grid{display:flex;flex-wrap:wrap;gap:8px}
-.ep-chip{display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--bg-card);border:1px solid var(--bg-hover);border-radius:var(--radius);font-size:12px}
-.ep-chip.card-break{border-color:var(--color-card)}
-.ep-num{font-weight:600;color:var(--text-primary)}
-.ep-scenes{color:var(--text-muted)}
-.card-tag{padding:1px 6px;font-size:10px;background:var(--color-card);color:#fff;border-radius:3px}
 </style>
