@@ -184,11 +184,11 @@ export default {
     // 撤销/重做
     function doUndo() {
       const prev = undoMgr.undo(sp)
-      if (prev) Object.assign(sp, prev)
+      if (prev) assignDeep(sp, prev)
     }
     function doRedo() {
       const next = undoMgr.redo(sp)
-      if (next) Object.assign(sp, next)
+      if (next) assignDeep(sp, next)
     }
 
     // 版本历史
@@ -206,7 +206,7 @@ export default {
     function restoreVersion(vi) {
       if (!confirm('确定恢复到此版本？当前未保存的修改将丢失。')) return
       const v = versionList.value[vi]
-      Object.assign(sp, JSON.parse(JSON.stringify(v.data)))
+      assignDeep(sp, v.data)
       debouncedSave()
     }
 
@@ -229,6 +229,12 @@ export default {
         if (zenMode.value) zenMode.value = false
         if (showSearch.value) showSearch.value = false
       }
+    }
+
+    // 深拷贝赋值到reactive sp（避免引用共享bug）
+    function assignDeep(target, source) {
+      const deep = JSON.parse(JSON.stringify(source))
+      Object.keys(deep).forEach(k => { target[k] = deep[k] })
     }
 
     // 主题
@@ -264,7 +270,7 @@ export default {
       activeProjectId.value = id
       await setActiveProjectId(id)
       // 同步到reactive sp
-      Object.assign(sp, p.data)
+      assignDeep(sp, p.data)
       undoMgr.init(sp)
       if (sp.episodes.length && sp.episodes[0].scenes.length) {
         activeSceneId.value = sp.episodes[0].scenes[0].id
@@ -286,7 +292,7 @@ export default {
       if (activeProjectId.value === id) {
         activeProject.value = null
         activeProjectId.value = ''
-        Object.assign(sp, createScreenplay())
+        assignDeep(sp, createScreenplay())
       }
       await refreshList()
     }
@@ -317,7 +323,7 @@ export default {
       if (!activeProject.value) return
       activeProject.value.totalEpisodes = n
       syncEpisodeCount(activeProject.value)
-      Object.assign(sp, activeProject.value.data)
+      assignDeep(sp, activeProject.value.data)
       debouncedSave()
     }
 
@@ -364,7 +370,7 @@ export default {
         try {
           const text = await readFile(file)
           const imported = parseScreenplay(text)
-          Object.assign(sp, imported)
+          assignDeep(sp, imported)
           if (activeProject.value) activeProject.value.totalEpisodes = sp.episodes.length
           doSave()
           tab.value = 'editor'
@@ -448,7 +454,7 @@ export default {
         if (p) {
           activeProject.value = p
           activeProjectId.value = lastId
-          Object.assign(sp, p.data)
+          assignDeep(sp, p.data)
           if (sp.episodes.length && sp.episodes[0].scenes.length) {
             activeSceneId.value = sp.episodes[0].scenes[0].id
           }
