@@ -16,6 +16,7 @@
         <button class="btn-sm" @click="addEpisode">+ 添加集</button>
         <button class="btn-sm" @click="showSetEp=true">设置集数</button>
         <button class="btn-sm" @click="doSave">保存</button>
+        <button class="btn-sm" @click="triggerImport" :disabled="importing">{{ importing ? '导入中...' : '📥 导入' }}</button>
         <div class="dropdown-wrap">
           <button class="btn-primary" @click="showExport=!showExport">导出 ▾</button>
           <div class="dropdown" v-if="showExport">
@@ -75,6 +76,7 @@ import MetaPanel from './components/MetaPanel.vue'
 import NavPanel from './components/NavPanel.vue'
 import EditorPanel from './components/EditorPanel.vue'
 import { exportDocx } from './export-docx.js'
+import { readFile, parseScreenplay } from './import-screenplay.js'
 
 export default {
   components: { MetaPanel, NavPanel, EditorPanel },
@@ -87,6 +89,42 @@ export default {
     const isDark = ref(true)
     const showSetEp = ref(false)
     const setEpCount = ref(30)
+    const importing = ref(false)
+
+    // 导入剧本
+    function triggerImport() {
+      const input = document.createElement('input')
+      input.type = 'file'
+      input.accept = '.txt,.docx,.doc,.pdf'
+      input.onchange = async (e) => {
+        const file = e.target.files[0]
+        if (!file) return
+        if (!confirm(`将导入文件「${file.name}」。当前剧本内容将被替换，确定？`)) return
+        importing.value = true
+        try {
+          const text = await readFile(file)
+          const imported = parseScreenplay(text)
+          // 替换当前剧本数据
+          sp.title = imported.title
+          sp.outline = imported.outline
+          sp.characters = imported.characters
+          sp.episodes = imported.episodes
+          sp.settings = imported.settings
+          doSave()
+          tab.value = 'editor'
+          if (sp.episodes.length && sp.episodes[0].scenes.length) {
+            activeSceneId.value = sp.episodes[0].scenes[0].id
+          }
+          alert(`导入成功！共解析 ${sp.episodes.length} 集、${sp.episodes.reduce((s,e) => s + e.scenes.length, 0)} 个场次`)
+        } catch (err) {
+          alert('导入失败：' + err.message)
+          console.error(err)
+        } finally {
+          importing.value = false
+        }
+      }
+      input.click()
+    }
 
     function toggleTheme() {
       isDark.value = !isDark.value
@@ -179,7 +217,7 @@ export default {
       }
     })
 
-    return { sp, tab, activeSceneId, showExport, lastSaved, isDark, showSetEp, setEpCount, totalScenes, totalChars, onUpdate, addEpisode, removeEpisode, setEpisodeCount, addScene, jumpTo, doSave, toggleTheme, doExportTxt, doExportDocx, doExportPdf, fmtTime }
+    return { sp, tab, activeSceneId, showExport, lastSaved, isDark, showSetEp, setEpCount, importing, totalScenes, totalChars, onUpdate, addEpisode, removeEpisode, setEpisodeCount, addScene, jumpTo, doSave, toggleTheme, triggerImport, doExportTxt, doExportDocx, doExportPdf, fmtTime }
   }
 }
 </script>
