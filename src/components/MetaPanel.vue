@@ -122,7 +122,7 @@ export default {
 </script>
 
 <style scoped>
-.meta-panel{max-width:800px;margin:0 auto;padding:32px 24px;overflow-y:auto;height:100%}
+.meta-panel{max-width:1100px;margin:0 auto;padding:40px 48px;overflow-y:auto;height:100%}
 .meta-section{margin-bottom:32px}
 .meta-section h2{font-size:16px;font-weight:600;margin-bottom:12px;color:var(--text-primary)}
 .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
