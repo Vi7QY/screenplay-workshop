@@ -13,12 +13,12 @@
         <template v-if="tab==='editor' && activeProject">
           <span class="current-title">{{ sp.title }}</span>
           <span class="stats">{{ sp.episodes.length }}集 · {{ totalScenes }}场 · {{ totalChars }}字</span>
-          <button class="btn-icon" @click="doUndo" :disabled="!undoMgr.state.canUndo" title="撤销 Ctrl+Z">↩</button>
-          <button class="btn-icon" @click="doRedo" :disabled="!undoMgr.state.canRedo" title="重做 Ctrl+Y">↪</button>
-          <button class="btn-icon" @click="showSearch=!showSearch" title="搜索替换 Ctrl+F">🔍</button>
-          <button class="btn-icon" @click="showOutline=!showOutline" title="大纲模式">📋</button>
-          <button class="btn-icon" @click="toggleZen" :title="zenMode?'退出沉浸':'沉浸写作'">{{ zenMode ? '⊡' : '⊞' }}</button>
-          <button class="btn-icon" @click="showVersions=!showVersions" title="版本历史">🕐</button>
+          <button class="btn-tool" @click="doUndo" :disabled="!undoMgr.state.canUndo" title="Ctrl+Z">↩ 撤销</button>
+          <button class="btn-tool" @click="doRedo" :disabled="!undoMgr.state.canRedo" title="Ctrl+Y">↪ 重做</button>
+          <button class="btn-tool" @click="showSearch=!showSearch" title="Ctrl+F">🔍 搜索</button>
+          <button class="btn-tool" @click="showOutline=!showOutline" :class="{active:showOutline}">📋 大纲</button>
+          <button class="btn-tool" @click="toggleZen" :class="{active:zenMode}">{{ zenMode ? '⊡ 退出沉浸' : '⊞ 沉浸写作' }}</button>
+          <button class="btn-tool" @click="showVersions=!showVersions" :class="{active:showVersions}">🕐 版本</button>
         </template>
         <template v-if="tab==='meta' && activeProject">
           <span class="current-title">{{ sp.title }}</span>
@@ -502,9 +502,10 @@ export default {
 .saved{color:var(--accent-ok)}
 .btn-theme{width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:16px;background:var(--bg-card);border-radius:50%;color:var(--text-secondary);line-height:1}
 .btn-theme:hover{background:var(--bg-hover);transform:rotate(20deg)}
-.btn-icon{width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:14px;background:var(--bg-card);border-radius:var(--radius);color:var(--text-secondary);line-height:1}
-.btn-icon:hover{background:var(--bg-hover);color:var(--text-primary)}
-.btn-icon:disabled{opacity:0.3;cursor:not-allowed}
+.btn-tool{display:flex;align-items:center;gap:3px;padding:4px 10px;font-size:12px;background:var(--bg-card);border-radius:var(--radius);color:var(--text-secondary);line-height:1;white-space:nowrap}
+.btn-tool:hover{background:var(--bg-hover);color:var(--text-primary)}
+.btn-tool:disabled{opacity:0.3;cursor:not-allowed}
+.btn-tool.active{background:rgba(124,92,231,0.15);color:var(--accent)}
 
 /* Zen Mode */
 .main.zen .sidebar{display:none}
