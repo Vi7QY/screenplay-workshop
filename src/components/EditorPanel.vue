@@ -154,6 +154,7 @@ export default {
       charMenuEi.value = ei
       charMenuSi.value = si
       charMenuOpen.value = true
+      charInput.value = ''
       filterChars()
     }
     function delayCloseCharMenu() {
