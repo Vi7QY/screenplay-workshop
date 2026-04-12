@@ -1,7 +1,10 @@
 <template>
   <div class="meta-panel">
-    <div class="meta-section">
+    <div class="meta-topbar">
       <h2>剧本信息</h2>
+      <button class="btn-save" @click="$emit('save')">💾 保存</button>
+    </div>
+    <div class="meta-section">
       <div class="field">
         <label>剧本标题</label>
         <input v-model="sp.title" placeholder="请输入剧本标题" @input="onTitleChange" />
@@ -73,7 +76,7 @@ import { ref, watch } from 'vue'
 import { createCharacter } from '../model.js'
 export default {
   props: { sp: Object, project: Object },
-  emits: ['update', 'update-project', 'ep-count-change'],
+  emits: ['update', 'update-project', 'ep-count-change', 'save'],
   setup(props, { emit }) {
     const ipType = ref(props.project?.ipType || 'original')
     const ipName = ref(props.project?.ipName || '')
@@ -123,6 +126,10 @@ export default {
 
 <style scoped>
 .meta-panel{width:100%;max-width:100%;margin:0;padding:40px 48px 40px 48px;overflow-y:auto;height:100%;box-sizing:border-box}
+.meta-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.meta-topbar h2{font-size:18px;font-weight:700;color:var(--text-primary);margin:0}
+.btn-save{padding:8px 20px;font-size:13px;font-weight:600;background:var(--accent);color:#fff;border-radius:var(--radius)}
+.btn-save:hover{background:#6a4bd6}
 .meta-section{margin-bottom:32px;width:100%}
 .meta-section h2{font-size:16px;font-weight:600;margin-bottom:12px;color:var(--text-primary)}
 .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}

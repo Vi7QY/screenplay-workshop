@@ -50,7 +50,7 @@
         @select="selectProject"
         @create="createNewProject"
         @delete="deleteProjectById"
-        @enter="tab='editor'"
+        @enter="tab='meta'"
         @import-archive="triggerImportArchive"
         @import-file="triggerImport"
         @export-all="doExportAll"
@@ -66,6 +66,7 @@
         @update="onUpdate"
         @update-project="onUpdateProject"
         @ep-count-change="onEpCountChange"
+        @save="doSave"
       />
     </div>
 
