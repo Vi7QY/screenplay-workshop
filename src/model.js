@@ -78,6 +78,19 @@ export function createScreenplay() {
   }
 }
 
+// 全局重编号：修复集/场次编号不同步的问题
+export function renumberAll(sp) {
+  sp.episodes.forEach((ep, ei) => {
+    ep.num = ei + 1
+    ep.title = `第${ei + 1}集`
+    ep.scenes.forEach((sc, si) => {
+      sc.episodeNum = ei + 1
+      sc.sceneNum = si + 1
+      sc.label = `${ei + 1}-${si + 1}`
+    })
+  })
+}
+
 // 获取某集属于哪个卡
 export function getCardForEpisode(epNum) {
   for (const rule of CARD_RULES) {

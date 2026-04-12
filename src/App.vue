@@ -14,6 +14,7 @@
           {{ isDark ? '☀️' : '🌙' }}
         </button>
         <button class="btn-sm" @click="addEpisode">+ 添加集</button>
+        <button class="btn-sm" @click="showSetEp=true">设置集数</button>
         <button class="btn-sm" @click="doSave">保存</button>
         <div class="dropdown-wrap">
           <button class="btn-primary" @click="showExport=!showExport">导出 ▾</button>
@@ -44,6 +45,22 @@
       </div>
     </div>
 
+    <!-- 设置集数弹窗 -->
+    <div class="modal-overlay" v-if="showSetEp" @click.self="showSetEp=false">
+      <div class="modal-box">
+        <div class="modal-title">设置总集数</div>
+        <div class="modal-body">
+          <span>当前 {{ sp.episodes.length }} 集，设置为：</span>
+          <input type="number" class="ep-count-input" v-model.number="setEpCount" min="1" max="200" @keydown.enter="setEpisodeCount" />
+          <span>集</span>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-sm" @click="showSetEp=false">取消</button>
+          <button class="btn-primary" @click="setEpisodeCount">确定</button>
+        </div>
+      </div>
+    </div>
+
     <footer class="statusbar">
       <span>▲ = 动作描写 · 输入 <kbd>dz</kbd> 插入动作 · <kbd>db</kbd> 对白 · <kbd>jt</kbd> 镜头指示 · <kbd>os</kbd> 内心独白 · <kbd>rw</kbd> 人物行 · <kbd>Enter</kbd> 新行</span>
       <span v-if="lastSaved" class="saved">已保存 {{ fmtTime(lastSaved) }}</span>
@@ -53,7 +70,7 @@
 
 <script>
 import { ref, reactive, computed, watch, onMounted } from 'vue'
-import { createScreenplay, createEpisode, createScene, loadFromStorage, saveToStorage, exportToText, isCardBreak, getCardForEpisode } from './model.js'
+import { createScreenplay, createEpisode, createScene, loadFromStorage, saveToStorage, exportToText, isCardBreak, getCardForEpisode, renumberAll } from './model.js'
 import MetaPanel from './components/MetaPanel.vue'
 import NavPanel from './components/NavPanel.vue'
 import EditorPanel from './components/EditorPanel.vue'
@@ -68,6 +85,8 @@ export default {
     const showExport = ref(false)
     const lastSaved = ref(null)
     const isDark = ref(true)
+    const showSetEp = ref(false)
+    const setEpCount = ref(30)
 
     function toggleTheme() {
       isDark.value = !isDark.value
@@ -93,19 +112,37 @@ export default {
     function addEpisode() {
       const num = sp.episodes.length + 1
       sp.episodes.push(createEpisode(num, 2))
+      renumberAll(sp)
       debouncedSave()
     }
     function removeEpisode(idx) {
       if (sp.episodes.length <= 1) return
       if (!confirm(`确定删除第${sp.episodes[idx].num}集？`)) return
       sp.episodes.splice(idx, 1)
-      sp.episodes.forEach((e,i) => { e.num = i+1; e.title = `第${i+1}集` })
+      renumberAll(sp)
+      debouncedSave()
+    }
+    function setEpisodeCount() {
+      const target = parseInt(setEpCount.value)
+      if (isNaN(target) || target < 1 || target > 200) { alert('请输入1-200之间的集数'); return }
+      const current = sp.episodes.length
+      if (target > current) {
+        for (let i = current + 1; i <= target; i++) {
+          sp.episodes.push(createEpisode(i, 2))
+        }
+      } else if (target < current) {
+        if (!confirm(`当前有${current}集，将缩减到${target}集。第${target + 1}集之后的内容将被删除，确定？`)) return
+        sp.episodes.splice(target)
+      }
+      renumberAll(sp)
+      showSetEp.value = false
       debouncedSave()
     }
     function addScene(epIdx) {
       const ep = sp.episodes[epIdx]
       const num = ep.scenes.length + 1
       ep.scenes.push(createScene(ep.num, num))
+      renumberAll(sp)
       debouncedSave()
     }
     function jumpTo(sceneId) { activeSceneId.value = sceneId; tab.value = 'editor' }
@@ -142,7 +179,7 @@ export default {
       }
     })
 
-    return { sp, tab, activeSceneId, showExport, lastSaved, isDark, totalScenes, totalChars, onUpdate, addEpisode, removeEpisode, addScene, jumpTo, doSave, toggleTheme, doExportTxt, doExportDocx, doExportPdf, fmtTime }
+    return { sp, tab, activeSceneId, showExport, lastSaved, isDark, showSetEp, setEpCount, totalScenes, totalChars, onUpdate, addEpisode, removeEpisode, setEpisodeCount, addScene, jumpTo, doSave, toggleTheme, doExportTxt, doExportDocx, doExportPdf, fmtTime }
   }
 }
 </script>
@@ -173,4 +210,11 @@ export default {
 .saved{color:var(--accent-ok)}
 .btn-theme{width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:16px;background:var(--bg-card);border-radius:50%;color:var(--text-secondary);line-height:1}
 .btn-theme:hover{background:var(--bg-hover);transform:rotate(20deg)}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:200}
+.modal-box{background:var(--bg-secondary);border:1px solid var(--bg-hover);border-radius:12px;padding:24px;min-width:320px;box-shadow:0 20px 60px rgba(0,0,0,0.3)}
+.modal-title{font-size:16px;font-weight:700;color:var(--text-primary);margin-bottom:16px}
+.modal-body{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text-secondary);margin-bottom:20px}
+.ep-count-input{width:70px;padding:6px 10px;font-size:16px;font-weight:600;text-align:center;background:var(--bg-editor);border:1px solid var(--bg-hover);border-radius:var(--radius);color:var(--text-primary)}
+.ep-count-input:focus{border-color:var(--accent);outline:none}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px}
 </style>
