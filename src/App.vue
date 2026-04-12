@@ -265,15 +265,20 @@ export default {
 
     async function selectProject(id) {
       try {
-        // 先保存当前项目（不刷新列表，避免竞态）
+        // 先保存当前项目
         if (activeProject.value) {
           activeProject.value.data = JSON.parse(JSON.stringify(sp))
           activeProject.value.name = sp.title
           await saveProject(activeProject.value)
         }
-        // 加载新项目
-        const p = await getProject(id)
-        if (!p) { console.error('Project not found:', id); return }
+        // 加载新项目（带重试）
+        let p = await getProject(id)
+        if (!p) {
+          // 等50ms重试一次
+          await new Promise(r => setTimeout(r, 50))
+          p = await getProject(id)
+        }
+        if (!p) { alert('无法加载该剧本，请刷新页面重试'); return }
         activeProject.value = p
         activeProjectId.value = id
         await setActiveProjectId(id)
@@ -285,14 +290,30 @@ export default {
         await refreshList()
       } catch (err) {
         console.error('selectProject error:', err)
+        alert('切换剧本失败：' + err.message)
       }
     }
 
     async function createNewProject() {
+      // 先保存当前项目
+      if (activeProject.value) {
+        activeProject.value.data = JSON.parse(JSON.stringify(sp))
+        activeProject.value.name = sp.title
+        await saveProject(activeProject.value)
+      }
+      // 创建新项目
       const p = createProject('未命名剧本')
       await saveProject(p)
+      // 直接切换，不从DB重新读
+      activeProject.value = p
+      activeProjectId.value = p.id
+      await setActiveProjectId(p.id)
+      assignDeep(sp, p.data)
+      undoMgr.init(sp)
+      if (sp.episodes.length && sp.episodes[0].scenes.length) {
+        activeSceneId.value = sp.episodes[0].scenes[0].id
+      }
       await refreshList()
-      await selectProject(p.id)
       tab.value = 'meta'
     }
 
