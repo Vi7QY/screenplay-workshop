@@ -40,13 +40,21 @@
                     v-model="charInput"
                     placeholder="+ 角色"
                     @keydown.enter.prevent="addSceneChar(ei,si)"
-                    @focus="showCharSuggest=true"
-                    @blur="hideCharSuggest"
-                    list="char-suggest"
+                    @focus="openCharMenu(ei,si)"
+                    @blur="delayCloseCharMenu"
+                    @input="filterChars"
                   />
-                  <datalist id="char-suggest">
-                    <option v-for="c in characters" :key="c.id" :value="c.name" />
-                  </datalist>
+                  <div class="char-dropdown" v-if="charMenuOpen && charMenuEi===ei && charMenuSi===si && filteredChars.length>0">
+                    <button
+                      v-for="c in filteredChars"
+                      :key="c.id"
+                      class="char-option"
+                      @mousedown.prevent="pickChar(ei,si,c.name)"
+                    >
+                      <span class="char-option-name">{{ c.name }}</span>
+                      <span class="char-option-role">{{ c.role }}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -136,8 +144,36 @@ export default {
   setup(props, { emit }) {
     const scrollEl = ref(null)
     const charInput = ref('')
-    const showCharSuggest = ref(false)
+    const charMenuOpen = ref(false)
+    const charMenuEi = ref(-1)
+    const charMenuSi = ref(-1)
+    const filteredChars = ref([])
     const blockTas = ref([])
+
+    function openCharMenu(ei, si) {
+      charMenuEi.value = ei
+      charMenuSi.value = si
+      charMenuOpen.value = true
+      filterChars()
+    }
+    function delayCloseCharMenu() {
+      setTimeout(() => { charMenuOpen.value = false }, 200)
+    }
+    function filterChars() {
+      const keyword = charInput.value.trim().toLowerCase()
+      const sc = props.sp.episodes[charMenuEi.value]?.scenes[charMenuSi.value]
+      const existing = sc ? sc.characters : []
+      filteredChars.value = props.characters.filter(c =>
+        c.name && !existing.includes(c.name) && (!keyword || c.name.toLowerCase().includes(keyword))
+      )
+    }
+    function pickChar(ei, si, name) {
+      const sc = props.sp.episodes[ei].scenes[si]
+      if (!sc.characters.includes(name)) sc.characters.push(name)
+      charInput.value = ''
+      charMenuOpen.value = false
+      emit('update')
+    }
 
     const quickBtns = [
       { type: 'action', icon: '▲', label: '动作', color: '#e94560' },
@@ -177,7 +213,6 @@ export default {
       props.sp.episodes[ei].scenes[si].characters.splice(ci, 1)
       emit('update')
     }
-    function hideCharSuggest() { setTimeout(() => showCharSuggest.value = false, 200) }
 
     function addBlock(ei, si, type) {
       const sc = props.sp.episodes[ei].scenes[si]
@@ -351,9 +386,9 @@ export default {
     })
 
     return {
-      scrollEl, charInput, showCharSuggest, blockTas, quickBtns,
+      scrollEl, charInput, charMenuOpen, charMenuEi, charMenuSi, filteredChars, blockTas, quickBtns,
       typeColor, typeIcon, pholder,
-      addSceneChar, removeSceneChar, hideCharSuggest,
+      addSceneChar, removeSceneChar, openCharMenu, delayCloseCharMenu, filterChars, pickChar,
       addBlock, removeBlock, changeBlockType,
       onBlockInput, onBlockKey,
       isCardBreak, getCardLabel,
@@ -396,6 +431,12 @@ export default {
 .tag-del:hover{color:var(--accent2)}
 .char-add-input{padding:2px 8px;font-size:12px;background:transparent;border:1px dashed var(--bg-hover);border-radius:12px;width:80px;color:var(--text-secondary)}
 .char-add-input:focus{border-color:var(--accent);width:100px}
+.char-dropdown{position:absolute;top:calc(100% + 4px);left:0;min-width:160px;max-height:180px;overflow-y:auto;background:var(--bg-card);border:1px solid var(--bg-hover);border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,0.3);z-index:100}
+.char-option{display:flex;align-items:center;justify-content:space-between;width:100%;padding:8px 12px;font-size:12px;background:transparent;color:var(--text-primary);border:none;cursor:pointer;text-align:left}
+.char-option:hover{background:var(--bg-hover)}
+.char-option-name{font-weight:600;color:var(--accent)}
+.char-option-role{font-size:11px;color:var(--text-muted)}
+.char-add-wrap{position:relative}
 
 /* 块列表 */
 .blocks-list{margin-bottom:12px}
