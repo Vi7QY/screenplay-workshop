@@ -16,8 +16,8 @@
           :class="{active: p.id === activeId}"
           @click="$emit('select', p.id)"
         >
-          <div class="project-name">{{ p.name }}</div>
-          <div class="project-meta">{{ p.episodeCount }}集 · {{ p.sceneCount }}场</div>
+          <div class="project-name">{{ activeId === p.id && currentProject ? currentProject.data?.title || p.name : p.name }}</div>
+          <div class="project-meta">{{ activeId === p.id && currentProject ? (currentProject.data?.episodes?.length || p.episodeCount) : p.episodeCount }}集</div>
           <div class="project-date">{{ fmtDate(p.updatedAt) }}</div>
           <button class="project-del" @click.stop="$emit('delete', p.id)" title="删除">✕</button>
         </div>
