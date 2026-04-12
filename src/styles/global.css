@@ -26,6 +26,6 @@ html,body{height:100%;font-family:'PingFang SC','Microsoft YaHei',sans-serif;bac
 #app{height:100vh;display:flex;flex-direction:column}
 ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--text-muted);border-radius:3px}
 ::selection{background:var(--selection-bg);color:var(--text-primary)}
-input,textarea,select{font-family:inherit;color:var(--text-primary);background:var(--bg-card);border:1px solid var(--bg-hover);border-radius:var(--radius);outline:none;transition:border-color var(--tr)}
+input,textarea,select{font-family:inherit;color:var(--text-primary);background:var(--bg-card);border:1px solid var(--bg-hover);border-radius:var(--radius);outline:none;transition:border-color var(--tr);max-width:100%;box-sizing:border-box}
 input:focus,textarea:focus,select:focus{border-color:var(--accent)}
 button{font-family:inherit;cursor:pointer;border:none;outline:none;transition:all var(--tr)}

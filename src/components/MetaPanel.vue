@@ -122,8 +122,8 @@ export default {
 </script>
 
 <style scoped>
-.meta-panel{max-width:100%;margin:0;padding:40px 48px 40px 48px;overflow-y:auto;height:100%}
-.meta-section{margin-bottom:32px}
+.meta-panel{width:100%;max-width:100%;margin:0;padding:40px 48px 40px 48px;overflow-y:auto;height:100%;box-sizing:border-box}
+.meta-section{margin-bottom:32px;width:100%}
 .meta-section h2{font-size:16px;font-weight:600;margin-bottom:12px;color:var(--text-primary)}
 .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .section-header h2{margin-bottom:0}
