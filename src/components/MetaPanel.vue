@@ -7,8 +7,8 @@
         <input v-model="sp.title" placeholder="请输入剧本标题" @input="onTitleChange" />
       </div>
       <div class="field">
-        <label>故事大纲</label>
-        <textarea v-model="sp.outline" rows="5" placeholder="请输入故事大纲，简要介绍故事背景和主线……" @input="$emit('update')"></textarea>
+        <label>故事梗概</label>
+        <textarea v-model="sp.outline" rows="6" placeholder="请输入故事梗概，简要介绍故事背景和主线……" @input="$emit('update')"></textarea>
       </div>
       <div class="field-row">
         <div class="field" style="flex:0 0 auto">
@@ -122,7 +122,7 @@ export default {
 </script>
 
 <style scoped>
-.meta-panel{max-width:1100px;margin:0 auto;padding:40px 48px;overflow-y:auto;height:100%}
+.meta-panel{max-width:100%;margin:0;padding:40px 48px 40px 48px;overflow-y:auto;height:100%}
 .meta-section{margin-bottom:32px}
 .meta-section h2{font-size:16px;font-weight:600;margin-bottom:12px;color:var(--text-primary)}
 .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
