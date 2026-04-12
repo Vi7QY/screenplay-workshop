@@ -370,6 +370,12 @@ export default {
         try {
           const text = await readFile(file)
           const imported = parseScreenplay(text)
+          // 同步项目元信息
+          if (imported._projectMeta && activeProject.value) {
+            activeProject.value.ipType = imported._projectMeta.ipType
+            activeProject.value.ipName = imported._projectMeta.ipName
+          }
+          delete imported._projectMeta
           assignDeep(sp, imported)
           if (activeProject.value) activeProject.value.totalEpisodes = sp.episodes.length
           doSave()
